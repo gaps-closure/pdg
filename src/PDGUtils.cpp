@@ -33,11 +33,12 @@ void pdg::PDGUtils::constructFuncMap(Module &M)
 
 void pdg::PDGUtils::collectGlobalInsts(Module &M)
 {
-  for (Module::global_iterator globalIt = M.global_begin(); globalIt != M.global_end(); ++globalIt)
-  {
-    InstructionWrapper *globalW = new InstructionWrapper(dyn_cast<Value>(&(*globalIt)), GraphNodeType::GLOBAL_VALUE);
-    G_globalInstsSet.insert(globalW);
-  }
+	for (Module::global_iterator globalIt = M.global_begin(); globalIt != M.global_end(); ++globalIt)
+	{
+		InstructionWrapper *globalW = new InstructionWrapper(dyn_cast<Value>(&(*globalIt)), GraphNodeType::GLOBAL_VALUE);
+		errs() << "AC_GLOBAL: " << globalIt->getName() << "\n" << *globalIt << "\n";
+		G_globalInstsSet.insert(globalW);
+	}
 }
 
 void pdg::PDGUtils::categorizeInstInFunc(Function &F)

@@ -110,12 +110,31 @@ struct DOTGraphTraits<pdg::DependencyNode<pdg::InstructionWrapper> *> : public D
     {
     case GraphNodeType::ENTRY:
     {
-      return ("<<ENTRY>> " + instW->getFunction()->getName().str());
+      		    if (instW->getFunction()->hasMetadata("dbg")) {
+		      OS << *instW->getFunction()->getMetadata("dbg");
+		    } else {
+		      OS << "NO DEBUG DATA";
+		    }
+                    //OS << instW->getFunction()->getSectionPrefix();
+                    return ("<<ENTRY>> " + instW->getFunction()->getName().str() + " <" + OS.str() + ">");
+
     }
     case GraphNodeType::GLOBAL_VALUE:
     {
       OS << *instW->getValue();
-      return ("GLOBAL_VALUE:" + OS.str());
+		    errs() << "AC_G_V:|" << OS.str() << "|\n";
+		    std::string dbgloc;
+		    raw_string_ostream OS2(dbgloc);
+		    OS2 << ", DBGLOC ";
+		    if (auto in_ac = dyn_cast<llvm::Instruction>(instW->getValue())) {
+		        if (in_ac->getDebugLoc()) {
+		        	errs() << "ACAC 1:" << *(in_ac->getDebugLoc())  << "\n";
+		        	auto *Scope = cast<DIScope>(in_ac->getDebugLoc()->getScope());
+		        	OS2 << "file " << Scope->getFilename() << " line " << in_ac->getDebugLoc()->getLine() << " col " << in_ac->getDebugLoc()->getColumn();
+		        }
+		    }
+		    OS2 << " ENDDBGLOC";
+                    return ("GLOBAL_VALUE:" + OS.str() + OS2.str());
     }
     case GraphNodeType::FORMAL_IN:
     {
@@ -224,7 +243,18 @@ struct DOTGraphTraits<pdg::DependencyNode<pdg::InstructionWrapper> *> : public D
       std::string Str;
       raw_string_ostream OS(Str);
       OS << *inst;
-      return OS.str();
+		inst->dump();
+		//errs() << "ACAC :" << OS.str() << "\n";
+		std::string dbgloc;
+		raw_string_ostream OS2(dbgloc);
+		OS2 << ", DBGLOC ";
+		if (inst->getDebugLoc()) {
+			//errs() << "ACAC 1:" << *(inst->getDebugLoc())  << "\n";
+			auto *Scope = cast<DIScope>(inst->getDebugLoc()->getScope());
+			OS2 << "file " << Scope->getFilename() << " line " << inst->getDebugLoc()->getLine() << " col " << inst->getDebugLoc()->getColumn();
+		}
+		OS2 << " ENDDBGLOC";
+                return OS.str() + OS2.str();
     }
   }
 };
@@ -300,13 +330,13 @@ struct DOTGraphTraits<pdg::ProgramDependencyGraph *> : public DOTGraphTraits<pdg
     switch (IW.getDependencyType())
     {
     case DependencyType::CONTROL:
-      return "";
+      return "label = \"{CONTROL}\"";
     case DependencyType::DATA_GENERAL:
       return "style=dotted, label = \"{D_general}\"";
     case DependencyType::GLOBAL_DEP:
-      return "style=dotted";
+      return "style=dotted,label = \"{GLOBAL_DEP}\"";
     case DependencyType::PARAMETER:
-      return "style=dashed, color=\"blue\"";
+      return "style=dashed, color=\"blue\",label = \"{PARAMETER}\"";
     case DependencyType::DATA_DEF_USE:
     {
       Instruction *pFromInst = Node->getData()->getInstruction();

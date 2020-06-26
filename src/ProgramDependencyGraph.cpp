@@ -52,6 +52,57 @@ bool pdg::ProgramDependencyGraph::runOnModule(Module &M)
     }
   }
 
+
+
+  //AC start: add global dependencies
+  InstructionWrapper * global_annos_iw = nullptr;
+  llvm::GlobalValue * global_annos = nullptr;
+
+  for (auto glob_ins : pdgUtils.getGlobalInstsSet())
+  {
+	  if (glob_ins->getValue()->getName() == "llvm.global.annotations") {
+		  errs() << "AC_GLOBAL_1: " << glob_ins->getValue()->getName() << "\n" << *(glob_ins->getValue()) << "\n";
+		  global_annos_iw = glob_ins;
+		  global_annos = dyn_cast<GlobalValue>(glob_ins->getValue());
+	  }
+  }
+
+  if(global_annos) {
+  	auto casted_array = cast<ConstantArray>(global_annos->getOperand(0));
+  	for (int i = 0; i < casted_array->getNumOperands(); i++) {
+  		errs() << "AC_Casted_array index " << i << "\n";
+  		auto casted_struct = cast<ConstantStruct>(casted_array->getOperand(i));
+  		errs() << "cAC_asted_struct\n" << *casted_struct << "\n-----\n";
+  		auto sen_gv_1 = (casted_struct->getOperand(0));
+  		errs() << "AC_sen_gv_1 " << *sen_gv_1 << "\n-----\n";;
+  		llvm::GlobalValue * sen_gv;
+  		if (! isa<GlobalValue>(sen_gv_1)) {
+  			sen_gv = dyn_cast<GlobalValue>(sen_gv_1->getOperand(0));
+  		} else {
+  			sen_gv = dyn_cast<GlobalValue>(sen_gv_1);
+  		}
+  		errs() << "sen_gv\n" << *sen_gv << "\n-----\n";;
+
+  		if (sen_gv) {
+  			auto anno = cast<ConstantDataArray>(cast<GlobalVariable>(casted_struct->getOperand(1)->getOperand(0))->getOperand(0))->getAsCString();
+  			errs() << anno << "AC_global found! value = " << *sen_gv << "\n*****\n";
+  			InstructionWrapper *sen_gv_iw = nullptr;
+  			for (auto i : pdgUtils.getGlobalInstsSet()) {
+  				if (i->getValue()->getName() == sen_gv->getName()) {
+  					sen_gv_iw = i;
+  					errs() << "AC_global found " << *sen_gv_iw->getValue() << "\n*****\n";
+  					break;
+  				}
+  			}
+
+  			PDG->addDependency(sen_gv_iw, global_annos_iw, DependencyType::DATA_DEF_USE);
+  		}
+  	}
+  }
+
+  //AC end
+
+
   // start process CallInst
   for (Module::iterator FI = M.begin(); FI != M.end(); ++FI)
   {
@@ -192,21 +243,24 @@ void pdg::ProgramDependencyGraph::addNodeDependencies(InstructionWrapper *instW)
   // processing Global instruction
   if (instW->getInstruction() != nullptr)
   {
-    if (LoadInst *LDInst = dyn_cast<LoadInst>(instW->getInstruction()))
-    {
-      for (auto GlobalInstW : pdgUtils.getGlobalInstsSet())
-      {
-        // iterate users of the global value
-        for (User *U : GlobalInstW->getValue()->users())
-        {
-          if (Instruction *userInst = dyn_cast<Instruction>(U))
-          {
-            InstructionWrapper *userInstW = pdgUtils.getInstMap()[userInst];
-            PDG->addDependency(GlobalInstW, userInstW, DependencyType::GLOBAL_DEP);
-          }
-        }
-      }
-    }
+	  if (LoadInst *LDInst = dyn_cast<LoadInst>(instW->getInstruction()))
+	  {
+		  for (auto GlobalInstW : pdgUtils.getGlobalInstsSet())
+		  {
+			  errs() << "AC_G_INST: " << *(GlobalInstW->getValue()) << "\n";
+			  // iterate users of the global value
+			  for (User *U : GlobalInstW->getValue()->users())
+			  {
+				  errs() << "AC_G_INST_USER:  " << *U << "\n";
+				  if (Instruction *userInst = dyn_cast<Instruction>(U))
+				  {
+					  errs() << "AC_G_INST_USER_INSTR: " <<  *userInst << "\n";
+					  InstructionWrapper *userInstW = pdgUtils.getInstMap()[userInst];
+					  PDG->addDependency(GlobalInstW, userInstW, DependencyType::GLOBAL_DEP);
+				  }
+			  }
+		  }
+	  }
   }
 
   // copy data dependency
