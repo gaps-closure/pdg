@@ -43,6 +43,7 @@ public:
   void collectAliasDependencies();
   DependencyNode<InstructionWrapper> *getNodeByData(llvm::Instruction *inst);
   typename DependencyNode<InstructionWrapper>::DependencyLinkList getNodeDepList(llvm::Instruction *inst);
+  typename DependencyNode<InstructionWrapper>::DependencyLinkList getNodeDepListIW(InstructionWrapper *iw);
   virtual bool runOnFunction(llvm::Function &Func);
   virtual void getAnalysisUsage(llvm::AnalysisUsage &AU) const;
   virtual llvm::StringRef getPassName() const { return "Data Dependency Graph"; }

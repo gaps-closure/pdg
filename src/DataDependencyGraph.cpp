@@ -239,6 +239,11 @@ typename pdg::DependencyNode<pdg::InstructionWrapper>::DependencyLinkList pdg::D
   return DDG->getNodeDepList(PDGUtils::getInstance().getInstMap()[inst]);
 }
 
+typename pdg::DependencyNode<pdg::InstructionWrapper>::DependencyLinkList pdg::DataDependencyGraph::getNodeDepListIW(InstructionWrapper *iw)
+{
+  return DDG->getNodeDepList(iw);
+}
+
 bool pdg::DataDependencyGraph::runOnFunction(Function &F)
 {
   Func = &F;

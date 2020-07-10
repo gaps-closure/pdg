@@ -122,16 +122,20 @@ struct DOTGraphTraits<pdg::DependencyNode<pdg::InstructionWrapper> *> : public D
     case GraphNodeType::GLOBAL_VALUE:
     {
       OS << *instW->getValue();
-		    errs() << "AC_G_V:|" << OS.str() << "|\n";
+		    errs() << "AC_G_V:|" << OS.str() << "<<>>" << instW->getValue()->getValueID() << "|\n";
+		    if (auto x1 = dyn_cast<llvm::GlobalObject>(instW->getValue())) {
+		    	errs() << "AC_G_V_2"<< "|\n";
+		    }
 		    std::string dbgloc;
 		    raw_string_ostream OS2(dbgloc);
 		    OS2 << ", DBGLOC ";
-		    if (auto in_ac = dyn_cast<llvm::Instruction>(instW->getValue())) {
-		        if (in_ac->getDebugLoc()) {
-		        	errs() << "ACAC 1:" << *(in_ac->getDebugLoc())  << "\n";
-		        	auto *Scope = cast<DIScope>(in_ac->getDebugLoc()->getScope());
-		        	OS2 << "file " << Scope->getFilename() << " line " << in_ac->getDebugLoc()->getLine() << " col " << in_ac->getDebugLoc()->getColumn();
-		        }
+		    if (auto in_ac = dyn_cast<llvm::GlobalObject>(instW->getValue())) {
+					errs() << "AC_MDS2.0\n";
+					llvm::SmallVector<std::pair<unsigned int,llvm::MDNode *>, 4> mds;
+					in_ac->getAllMetadata(mds);
+					for (auto md : mds) {
+						errs() << "AC_MDS2: " << md.first << " <<>> " << *md.second << "\n";
+					}
 		    }
 		    OS2 << " ENDDBGLOC";
                     return ("GLOBAL_VALUE:" + OS.str() + OS2.str());
@@ -252,6 +256,14 @@ struct DOTGraphTraits<pdg::DependencyNode<pdg::InstructionWrapper> *> : public D
 			//errs() << "ACAC 1:" << *(inst->getDebugLoc())  << "\n";
 			auto *Scope = cast<DIScope>(inst->getDebugLoc()->getScope());
 			OS2 << "file " << Scope->getFilename() << " line " << inst->getDebugLoc()->getLine() << " col " << inst->getDebugLoc()->getColumn();
+		} else  {
+			errs() << "AC_MDS.0\n";
+			llvm::SmallVector<std::pair<unsigned int,llvm::MDNode *>, 4> mds;
+			inst->getAllMetadata(mds);
+			for (auto md : mds) {
+				errs() << "AC_MDS: " << md.first << " <<>> " << *md.second << "\n";
+			}
+
 		}
 		OS2 << " ENDDBGLOC";
                 return OS.str() + OS2.str();
@@ -339,7 +351,6 @@ struct DOTGraphTraits<pdg::ProgramDependencyGraph *> : public DOTGraphTraits<pdg
       return "style=dashed, color=\"blue\",label = \"{PARAMETER}\"";
     case DependencyType::DATA_DEF_USE:
     {
-      Instruction *pFromInst = Node->getData()->getInstruction();
       return "style=dotted,label = \"{DEF_USE}\" ";
     }
     case DependencyType::DATA_RAW:

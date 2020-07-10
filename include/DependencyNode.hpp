@@ -20,7 +20,7 @@ public:
   using const_iterator = DependencyLinkIterator<NodeT>;
 
   DependencyNode() = delete; 
-  DependencyNode(const NodeT *pData) : dataNode(pData) {}
+  DependencyNode(const NodeT *pData) : dataNode(pData) {assert(pData);}// AC
   void addDependencyTo(DependencyNode<NodeT> *pNode, DependencyType type);
   const NodeT *getData() const { return dataNode; }
   DependencyLinkList &getDependencyList() { return dependencyList; }

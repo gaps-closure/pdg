@@ -72,7 +72,7 @@ bool pdg::ProgramDependencyGraph::runOnModule(Module &M)
   	for (int i = 0; i < casted_array->getNumOperands(); i++) {
   		errs() << "AC_Casted_array index " << i << "\n";
   		auto casted_struct = cast<ConstantStruct>(casted_array->getOperand(i));
-  		errs() << "cAC_asted_struct\n" << *casted_struct << "\n-----\n";
+  		errs() << "AC_Casted_struct\n" << *casted_struct << "\n-----\n";
   		auto sen_gv_1 = (casted_struct->getOperand(0));
   		errs() << "AC_sen_gv_1 " << *sen_gv_1 << "\n-----\n";;
   		llvm::GlobalValue * sen_gv;
@@ -85,13 +85,24 @@ bool pdg::ProgramDependencyGraph::runOnModule(Module &M)
 
   		if (sen_gv) {
   			auto anno = cast<ConstantDataArray>(cast<GlobalVariable>(casted_struct->getOperand(1)->getOperand(0))->getOperand(0))->getAsCString();
-  			errs() << anno << "AC_global found! value = " << *sen_gv << "\n*****\n";
+  			errs() << anno << "--> AC_global found! value = " << *sen_gv << "\n*****\n";
   			InstructionWrapper *sen_gv_iw = nullptr;
   			for (auto i : pdgUtils.getGlobalInstsSet()) {
   				if (i->getValue()->getName() == sen_gv->getName()) {
   					sen_gv_iw = i;
   					errs() << "AC_global found " << *sen_gv_iw->getValue() << "\n*****\n";
   					break;
+  				}
+  			}
+  			if (sen_gv_iw == nullptr) {
+  				//maybe annotated function
+  				for (auto ff  : pdgUtils.getFuncMap()) {
+  					FunctionWrapper * fw = ff.second;
+  					if (fw->getEntryW()->getFunction()->getName() == sen_gv->getName()) {
+  	  					sen_gv_iw = fw->getEntryW();
+  	  					errs() << "AC_global function found " << sen_gv_iw << "\n*****\n";
+  	  					break;
+  	  				}
   				}
   			}
 
@@ -264,7 +275,9 @@ void pdg::ProgramDependencyGraph::addNodeDependencies(InstructionWrapper *instW)
   }
 
   // copy data dependency
-  auto dataDList = ddg->getNodeDepList(instW->getInstruction());
+  errs() << "AC_NDL: " << instW << ", " << instW->getInstruction() << ", " << instW->getFunction() << ", " << instW->getValue() << "\n";
+  //AC auto dataDList = ddg->getNodeDepList(instW->getInstruction());
+  auto dataDList = ddg->getNodeDepListIW(instW);
   for (auto dependencyPair : dataDList)
   {
     InstructionWrapper *DNodeW2 = const_cast<InstructionWrapper *>(dependencyPair.first->getData());
