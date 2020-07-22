@@ -247,7 +247,7 @@ struct DOTGraphTraits<pdg::DependencyNode<pdg::InstructionWrapper> *> : public D
       std::string Str;
       raw_string_ostream OS(Str);
       OS << *inst;
-		inst->dump();
+		errs() << *inst << "\n";
 		//errs() << "ACAC :" << OS.str() << "\n";
 		std::string dbgloc;
 		raw_string_ostream OS2(dbgloc);

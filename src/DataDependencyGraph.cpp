@@ -138,17 +138,32 @@ void pdg::DataDependencyGraph::collectReadFromDependency(llvm::Instruction *inst
 void pdg::DataDependencyGraph::collectDefUseDependency(llvm::Instruction *inst)
 {
   // check for def-use dependencies
+	errs() << "CDUF1: " << *inst << "\n";
   for (Instruction::const_op_iterator cuit = inst->op_begin();
        cuit != inst->op_end(); ++cuit)
   {
+		errs() << "CDUF2: " << *(*cuit) << "\n";
     if (Instruction *pInst = dyn_cast<Instruction>(*cuit))
     {
       // add info flow from the instruction to current instruction
+		errs() << "CDUF3: " << "\n";
       DDG->addDependency(PDGUtils::getInstance().getInstMap()[pInst],
                          PDGUtils::getInstance().getInstMap()[inst],
                          DependencyType::DATA_DEF_USE);
     }
   }
+  //in addition, check for declare
+  if (DbgDeclareInst *ddi = dyn_cast<DbgDeclareInst>(inst)) {
+  	errs() << "CDUF4: " << *ddi << "\n";
+  	errs() << "CDUF5: " << *(ddi->getAddress()) << "\n";
+  	if (Instruction *pInst = dyn_cast<Instruction>(ddi->getAddress())) {
+  		errs() << "CDUF6: " << "\n";
+  		DDG->addDependency(PDGUtils::getInstance().getInstMap()[pInst],
+                       	 PDGUtils::getInstance().getInstMap()[inst],
+							 DependencyType::DATA_DEF_USE);
+  	}
+  }
+
 }
 
 void pdg::DataDependencyGraph::collectCallInstDependency(llvm::Instruction *inst)
