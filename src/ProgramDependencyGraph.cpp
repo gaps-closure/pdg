@@ -53,6 +53,7 @@ bool pdg::ProgramDependencyGraph::runOnModule(Module &M)
   }
 
 
+  addGlobalDependencies();//AC
 
   //AC start: add global dependencies
   InstructionWrapper * global_annos_iw = nullptr;
@@ -248,6 +249,7 @@ bool pdg::ProgramDependencyGraph::processCallInst(InstructionWrapper *instW)
   return true;
 }
 
+/** AC
 void pdg::ProgramDependencyGraph::addNodeDependencies(InstructionWrapper *instW)
 {
   auto &pdgUtils = PDGUtils::getInstance();
@@ -258,14 +260,14 @@ void pdg::ProgramDependencyGraph::addNodeDependencies(InstructionWrapper *instW)
 	  {
 		  for (auto GlobalInstW : pdgUtils.getGlobalInstsSet())
 		  {
-			  errs() << "AC_G_INST: " << *(GlobalInstW->getValue()) << "\n";
+			  //errs() << "AC_G_INST: " << *(GlobalInstW->getValue()) << "\n";
 			  // iterate users of the global value
 			  for (User *U : GlobalInstW->getValue()->users())
 			  {
-				  errs() << "AC_G_INST_USER:  " << *U << "\n";
+				  //errs() << "AC_G_INST_USER:  " << *U << "\n";
 				  if (Instruction *userInst = dyn_cast<Instruction>(U))
 				  {
-					  errs() << "AC_G_INST_USER_INSTR: " <<  *userInst << "\n";
+					  //errs() << "AC_G_INST_USER_INSTR: " <<  *userInst << "\n";
 					  InstructionWrapper *userInstW = pdgUtils.getInstMap()[userInst];
 					  PDG->addDependency(GlobalInstW, userInstW, DependencyType::GLOBAL_DEP);
 				  }
@@ -273,9 +275,29 @@ void pdg::ProgramDependencyGraph::addNodeDependencies(InstructionWrapper *instW)
 		  }
 	  }
   }
+**/
+void pdg::ProgramDependencyGraph::addGlobalDependencies() {
+	auto &pdgUtils = PDGUtils::getInstance();
+	// processing Global instruction
+	for (auto GlobalInstW : pdgUtils.getGlobalInstsSet()) {
+		errs() << "AC_G_INST: " << *(GlobalInstW->getValue()) << "\n";
+		// iterate users of the global value
+		for (User *U : GlobalInstW->getValue()->users()) {
+			errs() << "AC_G_INST_USER:  " << *U << "\n";
+			if (Instruction *userInst = dyn_cast<Instruction>(U)) {
+				errs() << "AC_G_INST_USER_INSTR: " <<  *userInst << "\n";
+				InstructionWrapper *userInstW = pdgUtils.getInstMap()[userInst];
+				PDG->addDependency(GlobalInstW, userInstW, DependencyType::GLOBAL_DEP);
+			}
+		}
+	}
+}
+/** AC END **/
 
+void pdg::ProgramDependencyGraph::addNodeDependencies(InstructionWrapper *instW) {
+  auto &pdgUtils = PDGUtils::getInstance();
   // copy data dependency
-  errs() << "AC_NDL: " << instW << ", " << instW->getInstruction() << ", " << instW->getFunction() << ", " << instW->getValue() << "\n";
+  //errs() << "AC_NDL: " << instW << ", " << instW->getInstruction() << ", " << instW->getFunction() << ", " << instW->getValue() << "\n";
   //AC auto dataDList = ddg->getNodeDepList(instW->getInstruction());
   auto dataDList = ddg->getNodeDepListIW(instW);
   for (auto dependencyPair : dataDList)
@@ -611,7 +633,7 @@ bool pdg::ProgramDependencyGraph::connectCallerAndCallee(InstructionWrapper *cal
         if (dyn_cast<ReturnInst>(tmpInstW->getInstruction())->getReturnValue() != nullptr)
           PDG->addDependency(tmpInstW, callInstW, DependencyType::DATA_GENERAL);
         else
-          errs() << "void ReturnInst: " << *tmpInstW->getInstruction();
+          errs() << "void ReturnInst: " << *tmpInstW->getInstruction() << "\n";
       }
     }
   }
@@ -695,8 +717,19 @@ void pdg::ProgramDependencyGraph::connectInOutTrees(ArgumentWrapper *CIArgW, Arg
   for (;CIInTI != CIArgW->tree_end(TreeType::ACTUAL_IN_TREE);
        CIInTI++, funcInTI++, funcOutTI++, CIOutTI++)
   {
-    PDG->addDependency(*CIInTI, *funcInTI, DependencyType::PARAMETER);
-    PDG->addDependency(*funcOutTI, *CIOutTI, DependencyType::PARAMETER);
+	  if (funcInTI == funcArgW->tree_end(TreeType::FORMAL_IN_TREE)) {
+		  errs() << "ERROR (AC): Not enough formal 'in' parameters!!!" << "\n";
+		  break;
+	  } else {
+		  PDG->addDependency(*CIInTI, *funcInTI, DependencyType::PARAMETER);
+	  }
+	  if ((funcOutTI == funcArgW->tree_end(TreeType::FORMAL_OUT_TREE)) or
+			  (CIOutTI == CIArgW->tree_end(TreeType::ACTUAL_OUT_TREE))) {
+		  errs() << "ERROR (AC): Not enough actual or formal 'out' parameters!!!" << "\n";
+		  break;
+	  } else {
+		  PDG->addDependency(*funcOutTI, *CIOutTI, DependencyType::PARAMETER);
+	  }
   }
 }
 

@@ -117,8 +117,10 @@ void pdg::DataDependencyGraph::collectAliasDependencies()
 
     InstructionWrapper *srcInstW = instMap[srcInst];
     InstructionWrapper *destInstW = instMap[destInst];
-    DDG->addDependency(srcInstW, destInstW, DependencyType::DATA_ALIAS);
-    DDG->addDependency(destInstW, srcInstW, DependencyType::DATA_ALIAS);
+    if (srcInstW != nullptr && destInstW != nullptr) {
+    	DDG->addDependency(srcInstW, destInstW, DependencyType::DATA_ALIAS);
+    	DDG->addDependency(destInstW, srcInstW, DependencyType::DATA_ALIAS);
+    }
   }
 }
 
@@ -138,15 +140,15 @@ void pdg::DataDependencyGraph::collectReadFromDependency(llvm::Instruction *inst
 void pdg::DataDependencyGraph::collectDefUseDependency(llvm::Instruction *inst)
 {
   // check for def-use dependencies
-	errs() << "CDUF1: " << *inst << "\n";
+	//errs() << "CDUF1: " << *inst << "\n";
   for (Instruction::const_op_iterator cuit = inst->op_begin();
        cuit != inst->op_end(); ++cuit)
   {
-		errs() << "CDUF2: " << *(*cuit) << "\n";
+		//errs() << "CDUF2: " << *(*cuit) << "\n";
     if (Instruction *pInst = dyn_cast<Instruction>(*cuit))
     {
       // add info flow from the instruction to current instruction
-		errs() << "CDUF3: " << "\n";
+		//errs() << "CDUF3: " << "\n";
       DDG->addDependency(PDGUtils::getInstance().getInstMap()[pInst],
                          PDGUtils::getInstance().getInstMap()[inst],
                          DependencyType::DATA_DEF_USE);
@@ -154,10 +156,10 @@ void pdg::DataDependencyGraph::collectDefUseDependency(llvm::Instruction *inst)
   }
   //in addition, check for declare
   if (DbgDeclareInst *ddi = dyn_cast<DbgDeclareInst>(inst)) {
-  	errs() << "CDUF4: " << *ddi << "\n";
-  	errs() << "CDUF5: " << *(ddi->getAddress()) << "\n";
+  	//errs() << "CDUF4: " << *ddi << "\n";
+  	//errs() << "CDUF5: " << *(ddi->getAddress()) << "\n";
   	if (Instruction *pInst = dyn_cast<Instruction>(ddi->getAddress())) {
-  		errs() << "CDUF6: " << "\n";
+  		//errs() << "CDUF6: " << "\n";
   		DDG->addDependency(PDGUtils::getInstance().getInstMap()[pInst],
                        	 PDGUtils::getInstance().getInstMap()[inst],
 							 DependencyType::DATA_DEF_USE);

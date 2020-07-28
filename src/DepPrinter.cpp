@@ -129,14 +129,14 @@ struct DOTGraphTraits<pdg::DependencyNode<pdg::InstructionWrapper> *> : public D
 		    std::string dbgloc;
 		    raw_string_ostream OS2(dbgloc);
 		    OS2 << ", DBGLOC ";
-		    if (auto in_ac = dyn_cast<llvm::GlobalObject>(instW->getValue())) {
-					errs() << "AC_MDS2.0\n";
-					llvm::SmallVector<std::pair<unsigned int,llvm::MDNode *>, 4> mds;
-					in_ac->getAllMetadata(mds);
-					for (auto md : mds) {
-						errs() << "AC_MDS2: " << md.first << " <<>> " << *md.second << "\n";
-					}
-		    }
+		    //if (auto in_ac = dyn_cast<llvm::GlobalObject>(instW->getValue())) {
+			//		errs() << "AC_MDS2.0\n";
+			//		llvm::SmallVector<std::pair<unsigned int,llvm::MDNode *>, 4> mds;
+			//		in_ac->getAllMetadata(mds);
+			//		for (auto md : mds) {
+			//			errs() << "AC_MDS2: " << md.first << " <<>> " << *md.second << "\n";
+			//		}
+		    //}
 		    OS2 << " ENDDBGLOC";
                     return ("GLOBAL_VALUE:" + OS.str() + OS2.str());
     }
@@ -237,9 +237,21 @@ struct DOTGraphTraits<pdg::DependencyNode<pdg::InstructionWrapper> *> : public D
 
     //llvm::Instruction *inst = Node->getData()->getInstruction();
     llvm::Instruction *inst = instW->getInstruction();
-
-    if (inst == nullptr)
+    errs() << "AC_MDS_NULL:" << inst << "\n";
+    if (inst == nullptr) {
       return OS.str();
+    }
+
+    if (llvm::Value * v = dyn_cast<Value>(inst)){
+    	errs() << "AC_MDS_NULL_V_1:" << "\n";
+    	errs() << "AC_MDS_NULL_V_2:" << v->getType() << "<<>>" << v->hasName() << "\n";
+    	errs() << "AC_MDS_NULL_V_3:" << v->getValueName() << "\n";
+    	if (v->getType() == nullptr) {
+    		return "AC_INCORRECT_INST_WRAPPER";
+    	}
+    }
+    errs() << "AC_MDS_NULL_V_4:" << instW->to_string() << "\n";
+
     if (isSimple() && !inst->getName().empty())
       return inst->getName().str();
     else
@@ -454,6 +466,12 @@ struct ProgramDependencyPrinter : public llvm::DOTGraphTraitsPrinter<pdg::Progra
 {
   static char ID;
   ProgramDependencyPrinter() : llvm::DOTGraphTraitsPrinter<pdg::ProgramDependencyGraph, false>("pdgragh", ID) {}
+  //AC -- make only one graph file
+  bool processFunction(llvm::Function&F, pdg::ProgramDependencyGraph &A) {
+          llvm::errs() << "ACPF: " << F.getName() << "\n";
+          return F.getName() == "main";
+  }
+  //AC end
 };
 
 char ProgramDependencyPrinter::ID = 0;

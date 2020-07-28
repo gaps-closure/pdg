@@ -25,6 +25,7 @@ public:
   bool processCallInst(InstructionWrapper *instW);
   bool processIndirectCallInst(llvm::CallInst *CI, InstructionWrapper *instW);
   void addNodeDependencies(InstructionWrapper *instW);
+  void addGlobalDependencies();//AC
   // parameter tree building
   std::vector<llvm::Function *> collectIndirectCallCandidates(llvm::FunctionType *funcType);
   void buildActualParameterTrees(llvm::CallInst *CI);

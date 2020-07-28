@@ -12,6 +12,8 @@
 #include "llvm/Support/raw_ostream.h"
 #include "PDGEnums.hpp"
 
+#include <string>
+
 namespace pdg
 {
 class InstructionWrapper {
@@ -33,6 +35,7 @@ class InstructionWrapper {
       this->Func = Inst->getFunction();
       this->BB = Inst->getParent();
       this->value = llvm::cast<llvm::Value>(Inst);
+      assert(this->value->getType());
       this->nodetype = nodeType;
       this->isVisited = false;
       this->access_type = AccessType::NOACCESS;
@@ -64,6 +67,13 @@ class InstructionWrapper {
     virtual InstructionWrapper *getGEPInstW() const { return nullptr; }
     virtual int getNodeOffset() const { return -1; }
     virtual llvm::DIType *getDIType() const { return nullptr; }
+    virtual std::string to_string() const {
+    	std::string Str;
+    	llvm::raw_string_ostream OS(Str);
+    	OS << "InstructionWrapper(" << Inst << "," << value << "," << BB << "," << Func << ","
+    			<< static_cast<int>(nodetype) << "," << isVisited << "," << static_cast<int>(access_type) << ")";
+    	return OS.str();
+    }
 
   private:
     llvm::Instruction *Inst;
@@ -148,6 +158,14 @@ class TreeTypeWrapper : public InstructionWrapper
     InstructionWrapper *getGEPInstW() const override { return gepInstW; }
     int getNodeOffset() const override { return node_offset; }
     llvm::DIType *getDIType() const override { return dt; }
+    std::string to_string() const {
+    	std::string Str;
+    	llvm::raw_string_ostream OS(Str);
+    	OS << "TreeTypeWrapper(" << InstructionWrapper::to_string() << "," << arg << "," << gepInstW << "," << treeNodeType << ","
+    			<< parentTreeNodeType << "," << node_offset << "," << dt << ")";
+    	return OS.str();
+    }
+
 
   private:
     llvm::Argument *arg;
